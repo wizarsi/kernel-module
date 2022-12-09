@@ -15,7 +15,7 @@
 #include <linux/sched/task_stack.h>
 #include <asm/syscall.h>
 
-#include "lab2-ioctl.h"
+#include "messages.h"
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Andrew Vasiliev");
@@ -73,20 +73,13 @@ struct dentry *struct_dentry;
 
 int fill_syscall_info(struct message_syscall_info *message_syscall_info) {
     struct task_struct *task = get_pid_task(find_get_pid(message_syscall_info->pid), PIDTYPE_PID);
-    unsigned long args[6] = {};
     struct pt_regs *regs = task_pt_regs(task);
     message_syscall_info->sp = user_stack_pointer(regs);
     message_syscall_info->nr = syscall_get_nr(task, regs);
     message_syscall_info->instruction_pointer = instruction_pointer(regs);
     if (message_syscall_info->nr != -1L) {
-        syscall_get_arguments(task, regs, args);
+        syscall_get_arguments(task, regs, message_syscall_info->args);
     }
-    message_syscall_info->args[0] = args[0];
-    message_syscall_info->args[1] = args[1];
-    message_syscall_info->args[2] = args[2];
-    message_syscall_info->args[3] = args[3];
-    message_syscall_info->args[4] = args[4];
-    message_syscall_info->args[5] = args[5];
     return 0;
 }
 
@@ -101,8 +94,8 @@ int fill_dentry(struct message_dentry *message_dentry) {
     }
     printk("lab2-ioctl - Update the path to %s\n", path_name);
     struct_dentry = path.dentry;
-    sscanf(struct_dentry->d_parent->d_name.name, "%s", message_dentry->name);
-    sscanf(struct_dentry->d_name.name, "%s", message_dentry->parent_name);
+    sscanf(struct_dentry->d_name.name, "%s", message_dentry->name);
+    sscanf(struct_dentry->d_parent->d_name.name, "%s", message_dentry->parent_name);
     message_dentry->i_uid = struct_dentry->d_inode->i_uid.val;
     message_dentry->i_gid = struct_dentry->d_inode->i_gid.val;
     message_dentry->d_flags = struct_dentry->d_flags;
@@ -169,41 +162,36 @@ static long module_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 static int __init init_driver(void) {
     printk("lab2-ioctl - module start  work\n");
 
-    /*Allocating Major number*/
     if ((alloc_chrdev_region(&dev, 0, 1, "lab2_dev")) < 0) {
-        printk("lab2-ioctl - cannot allocate major number\n");
+        printk("lab2-ioctl - cannot allocate major and minor number\n");
         return -1;
     }
-    printk("lab2-ioctl -Major = %d Minor = %d \n", MAJOR(dev), MINOR(dev));
+    printk("lab2-ioctl - Major = %d Minor = %d \n", MAJOR(dev), MINOR(dev));
 
-    /*Creating cdev structure*/
+    //creating cdev structure
     cdev_init(&cdev_struct, &fops);
 
-    /*Adding character device to the system*/
+    //adding character device
     if ((cdev_add(&cdev_struct, dev, 1)) < 0) {
         printk("lab2-ioctl - cannot add the device to the system\n");
-        goto r_class;
+        unregister_chrdev_region(dev, 1);
+        return -1;
     }
 
-    /*Creating struct class*/
     if ((dev_class = class_create(THIS_MODULE, "lab2_class")) == NULL) {
         printk("lab2-ioctl -cannot create the struct class lab2_class\n");
-        goto r_class;
+        unregister_chrdev_region(dev, 1);
+        return -1;
     }
 
-    /*Creating device*/
     if ((device_create(dev_class, NULL, dev, NULL, "lab2_device")) == NULL) {
         printk("lab2-ioctl - cannot create the device lab2_device\n");
-        goto r_device;
+        class_destroy(dev_class);
+        unregister_chrdev_region(dev, 1);
+        return -1;
     }
     printk("lab2-ioctl - device driver inserted\n");
     return 0;
-
-    r_device:
-    class_destroy(dev_class);
-    r_class:
-    unregister_chrdev_region(dev, 1);
-    return -1;
 }
 
 static void __exit exit_driver(void) {

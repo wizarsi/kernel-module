@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include "lab2-ioctl.h"
+#include "messages.h"
 
 void print_dentry(struct message_dentry *msg_dentry);
 void print_syscall_info(struct message_syscall_info* info);
@@ -53,20 +53,20 @@ int main(int argc, char *argv[]) {
 }
 
 void print_dentry(struct message_dentry *message_dentry) {
-    printf("dentry:\n");
-    printf("name: %s\n", message_dentry->name);
-    printf("parent file name: %s\n", message_dentry->parent_name);
-    printf("inode UID: %d\n", message_dentry->i_uid);
-    printf("inode GID: %d\n", message_dentry->i_gid);
-    printf("element flags: %d\n\n", message_dentry->d_flags);
+    printf("DENTRY:\n");
+    printf("Name: %s\n", message_dentry->name);
+    printf("Parent file name: %s\n", message_dentry->parent_name);
+    printf("Inode UID: %d\n", message_dentry->i_uid);
+    printf("Inode GID: %d\n", message_dentry->i_gid);
+    printf("Element flags: %d\n\n", message_dentry->d_flags);
 }
 
 void print_syscall_info(struct message_syscall_info* message_syscall_info){
-    printf("syscall_info:\n");
-    printf("stack pointer: %lu\n", message_syscall_info->sp);
-    printf("instruction pointer: %lu\n", message_syscall_info->instruction_pointer);
-    printf("syscall executed is: %d\n", message_syscall_info->nr);
-    printf("array of syscall stack:\n1.%lu\n2.%lu\n3.%lu\n4.%lu\n5.%lu\n6.%lu\n",
+    printf("SYSCALL_INFO:\n");
+    printf("Stack pointer: %lu\n", message_syscall_info->sp);
+    printf("Instruction pointer: %lu\n", message_syscall_info->instruction_pointer);
+    printf("The system call number: %d\n", message_syscall_info->nr);
+    printf("Syscall arguments:\n1.%lu\n2.%lu\n3.%lu\n4.%lu\n5.%lu\n6.%lu\n",
            message_syscall_info->args[0],
            message_syscall_info->args[1],
            message_syscall_info->args[2],
